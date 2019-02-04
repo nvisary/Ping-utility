@@ -27,7 +27,7 @@ def main(dest_name):
         send_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
         send_socket.setsockopt(socket.SOL_IP, socket.IP_TTL, ttl)
 
-        timeout = struct.pack("ll", 5, 0)
+        timeout = struct.pack("ll", 1, 0)
         rec_socket.setsockopt(socket.SOL_SOCKET, socket.SO_RCVTIMEO, timeout)
 
         rec_socket.bind(("", port))
