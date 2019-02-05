@@ -19,33 +19,30 @@ MAX_SLEEP = 1000
 
 def calculate_checksum(source_string):
     """
-	A port of the functionality of in_cksum() from ping.c
-	Ideally this would act on the string as a series of 16-bit ints (host
-	packed), but this works.
-	Network data is big-endian, hosts are typically little-endian
-	"""
-    countTo = (int(len(source_string) / 2)) * 2
+    A port of the functionality of in_cksum() from ping.c
+    Ideally this would act on the string as a series of 16-bit ints (hostpacked), but this works.
+    Network data is big-endian, hosts are typically little-endian
+    """
+
+    count_to = (int(len(source_string) / 2)) * 2
     sum = 0
     count = 0
 
-    # Handle bytes in pairs (decoding as short ints)
-    loByte = 0
-    hiByte = 0
-    while count < countTo:
-        if (sys.byteorder == "little"):
-            loByte = source_string[count]
-            hiByte = source_string[count + 1]
+    while count < count_to:
+        if sys.byteorder == "little":
+            low_byte = source_string[count]
+            high_byte = source_string[count + 1]
         else:
-            loByte = source_string[count + 1]
-            hiByte = source_string[count]
-        sum = sum + (ord(hiByte) * 256 + ord(loByte))
+            low_byte = source_string[count + 1]
+            high_byte = source_string[count]
+        sum = sum + (high_byte * 256 + low_byte)
         count += 2
 
     # Handle last byte if applicable (odd-number of bytes)
     # Endianness should be irrelevant in this case
-    if countTo < len(source_string):  # Check for odd length
-        loByte = source_string[len(source_string) - 1]
-        sum += ord(loByte)
+    if count_to < len(source_string):  # Check for odd length
+        low_byte = source_string[len(source_string) - 1]
+        sum += low_byte
 
     sum &= 0xffffffff  # Truncate sum to 32 bits (a variance from ping.c, which
     # uses signed ints, but overflow is unlikely in ping)
@@ -58,8 +55,8 @@ def calculate_checksum(source_string):
     return answer
 
 
-def is_valid_ip4_address(addr):
-    parts = addr.split(".")
+def is_valid_ip4_address(address):
+    parts = address.split(".")
     if not len(parts) == 4:
         return False
     for part in parts:
@@ -72,13 +69,13 @@ def is_valid_ip4_address(addr):
     return True
 
 
-def to_ip(addr):
-    if is_valid_ip4_address(addr):
-        return addr
-    return socket.gethostbyname(addr)
+def to_ip(address):
+    if is_valid_ip4_address(address):
+        return address
+    return socket.gethostbyname(address)
 
 
-class Response(object):
+class Response:
     def __init__(self):
         self.max_rtt = None
         self.min_rtt = None
@@ -131,7 +128,7 @@ class Ping(object):
     # --------------------------------------------------------------------------
 
     def print_start(self):
-        msg = "\nPYTHON-PING %s (%s): %d data bytes" % (self.destination, self.dest_ip, self.packet_size)
+        msg = "\nICMP ping %s (%s): %d data bytes" % (self.destination, self.dest_ip, self.packet_size)
         if self.quiet_output:
             self.response.output.append(msg)
         else:
@@ -175,7 +172,7 @@ class Ping(object):
             print(msg)
 
     def print_exit(self):
-        msg = "\n----%s PYTHON PING Statistics----" % (self.destination)
+        msg = "\n----%s ICMP ping statistics----" % self.destination
 
         if self.quiet_output:
             self.response.output.append(msg)
@@ -275,17 +272,8 @@ class Ping(object):
         """
 		Send one ICMP ECHO_REQUEST and receive the response until self.timeout
 		"""
-        try:
-            current_socket = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.getprotobyname("icmp"))
-        except socket.error, (errno, msg):
-            if errno == 1:
-                # Operation not permitted - Add more information to traceback
-                etype, evalue, etb = sys.exc_info()
-                evalue = etype(
-                    "%s - Note that ICMP messages can only be send from processes running as root." % evalue
-                )
-                raise etype, evalue, etb
-            raise  # raise the original error
+
+        current_socket = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.getprotobyname("icmp"))
 
         send_time = self.send_one_ping(current_socket)
         if send_time == None:
